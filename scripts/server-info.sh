@@ -40,7 +40,8 @@ service_health_checks() {
     local running=0
     for service in "$@"; do
         ((total++))
-        response=$(curl -s -o /dev/null -H "Content-Type: application/json" -w "%{http_code}|%{time_total}" ${service} 2>&1)
+        response=$(curl -s -o /dev/null -H "Content-Type: application/json" -w "%{http_code}|%{time_total}" "${service}" 2>&1)
+        # shellcheck disable=SC2181
         if [[ $? -eq 0  ]]; then
             ((running++))
             status=$(echo "${response}" | cut -d'|' -f1)
@@ -70,22 +71,22 @@ show_help() {
 show_server_info() {
     for arg in "$@"; do
         if [[ $arg == "--help" ]]; then
-            show_help $@
+            show_help "$@"
         fi
     done
 
     diagnostics
     resources
 
-    check_docker=$(docker --version > /dev/null 2>&1)
-    if [[ $? -eq 0 ]]; then
+    if docker --version > /dev/null 2>&1
+    then
         docker_containers
     fi
 
-    check_curl=$(curl --version > /dev/null 2>&1)
-    if [[ $? -eq 0 && $# -ne 0 ]]; then
-        service_health_checks $@
+    if curl --version > /dev/null 2>&1 && $# -ne 0
+    then
+        service_health_checks "$@"
     fi
 }
 
-show_server_info $@
+show_server_info "$@"
