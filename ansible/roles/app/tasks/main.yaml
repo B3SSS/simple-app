@@ -1,0 +1,52 @@
+---
+- name: Ensure Git is installed
+  ansible.builtin.apt:
+    name: git
+    state: present
+    update_cache: true
+
+- name: Ensure app durectory exists
+  ansible.builtin.file:
+    name: "{{ app_home_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Git checkout repo
+  ansible.builtin.git:
+    repo: "https://github.com/B3SSS/test-simple-app.git"
+    dest: "{{ app_tmp_dir }}"
+
+- name: Copy app files
+  ansible.builtin.copy:
+    src: "{{ app_tmp_dir }}/{{ item }}"
+    dest: "{{ app_home_path }}"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  loop: "{{ app_copy_files_and_dirs }}"
+
+- name: Run app
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_home_path }}"
+    state: present
+    build: always
+    recreate: always
+  register: compose_facts
+
+- name: Verify that app is running
+  ansible.builtin.assert:
+    that:
+      - app_container.State == "running"
+    fail_msg: "Container {{ app_container.Name }} is not running! Current state: {{ app_container.Status }}"
+    success_msg: "Container {{ app_container.Name }} is healthy and running."
+  vars:
+    app_container: >-
+      {{ compose_facts.containers | selectattr("Service", "equalto", "app") | first }}
+
+- name: Check if app URL return 200
+  ansible.builtin.uri:
+    url: "{{ app_service_health_url }}"
+    method: GET
+    status_code: 200
+...

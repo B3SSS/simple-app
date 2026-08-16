@@ -1,0 +1,11 @@
+---
+app_home_path: "/opt/simple-app"
+app_tmp_dir: "/tmp/app-repository"
+app_copy_files_and_dirs:
+  - "app"
+  - "Dockerfile"
+  - "docker-compose.yaml"
+
+app_port: 8080
+app_service_health_url: "http://localhost:{{ app_port }}/health"
+...
